@@ -16,7 +16,9 @@ QMC-HAMM Utilities
 
 
 
-Routines to help with the QMC-HAMM project
+Routines to help with the QMC-HAMM project.
+
+This will likely be a reasonably small collection of IO routines and generator stubs.
 
 
 * Free software: BSD license
