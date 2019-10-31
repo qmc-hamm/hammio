@@ -23,7 +23,6 @@ def load_lkw_directory(dirname, parameters = None,
         format_string = "".join([_ + "{" + _ + "}" for _ in param_names]) + ".json"
         dfs = []
         for i, v in enumerate(itertools.product(*param_vals)):
-            print(i)
             fn = os.path.join(dirname, format_string.format(**dict(zip(param_names, v))))
             if not os.path.isfile(fn): continue
             dftmp = pd.read_json(fn)
