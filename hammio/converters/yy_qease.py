@@ -57,8 +57,8 @@ def name_sep_val(mm, name, sep='=', dtype=float, ipos=1):
   if idx == -1:
     raise RuntimeError('"%s" not found' % name)
   mm.seek(idx)
-  line = mm.readline()
-  tokens = line.split(sep.encode())
+  line = mm.readline().decode()
+  tokens = line.split(sep)
   val_text = tokens[ipos].split()[0]
   val = dtype(val_text)
   return val
