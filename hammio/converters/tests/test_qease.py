@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import numpy as np
 from hammio.converters import yy_qease as yq
 
@@ -264,7 +264,7 @@ def test_name_sep_val():
   # parse input parameters
   ftmp = 'tmp.out'
   out_text = eg['in']
-  with open('tmp.out', 'w') as f:
+  with open(ftmp, 'w') as f:
     f.write(out_text)
   mm = yq.read(ftmp)
   degauss = yq.name_sep_val(mm, 'degauss')
@@ -273,9 +273,8 @@ def test_name_sep_val():
   assert kstr == 'automatic'
   mm.close()
   # parse output parameters
-  ftmp = 'tmp.out'
   out_text = eg['out']
-  with open('tmp.out', 'w') as f:
+  with open(ftmp, 'w') as f:
     f.write(out_text)
   mm = yq.read(ftmp)
   volume = yq.name_sep_val(mm, 'unit-cell volume')
@@ -294,7 +293,7 @@ def test_energy():
   eg = example_scf('h4-nosym')
   ftmp = 'tmp.out'
   out_text = eg['out']
-  with open('tmp.out', 'w') as f:
+  with open(ftmp, 'w') as f:
     f.write(out_text)
   mm = yq.read(ftmp)
   e = yq.energy(mm)
@@ -305,7 +304,7 @@ def test_total_forces():
   eg = example_scf('h4-nosym')
   ftmp = 'tmp.out'
   out_text = eg['out']
-  with open('tmp.out', 'w') as f:
+  with open(ftmp, 'w') as f:
     f.write(out_text)
   mm = yq.read(ftmp)
   forces = yq.total_forces(mm)
@@ -322,7 +321,7 @@ def test_total_stress():
   eg = example_scf('h4-nosym')
   ftmp = 'tmp.out'
   out_text = eg['out']
-  with open('tmp.out', 'w') as f:
+  with open(ftmp, 'w') as f:
     f.write(out_text)
   mm = yq.read(ftmp)
   stress = yq.total_stress(mm)
@@ -334,8 +333,71 @@ def test_total_stress():
   ])
   assert np.allclose(stress, sref)
 
+def test_stay():
+  eg = example_scf('h4-nosym')
+  ftmp = 'tmp.out'
+  out_text = eg['out']
+  with open(ftmp, 'w') as f:
+    f.write(out_text)
+  mm = yq.read(ftmp)
+  # no stay
+  def read_energy_no_stay(mm):
+    idx = mm.find(b'!')
+    mm.seek(idx)
+    return mm.readline()
+  e0 = read_energy_no_stay(mm)
+  try:
+    e1 = read_energy_no_stay(mm)
+  except ValueError as err:
+    assert str(err) == 'seek out of range'
+  # with stay
+  mm.seek(0)  # rewind
+  e1 = yq.stay(read_energy_no_stay)(mm)
+  e2 = yq.stay(read_energy_no_stay)(mm)
+  assert e1 == e0
+  assert e2 == e0
+
+def test_qe2ase():
+  eg = example_scf('h4-nosym')
+  for suf in ['in', 'out']:
+    text = eg[suf]
+    with open('tmp.%s' % suf, 'w') as f:
+      f.write(text)
+  atoms = yq.qe2ase('tmp.in', 'tmp.out')
+  e0 = atoms.get_total_energy()
+  assert np.isclose(e0, -57.9147578512)
+  forces = atoms.get_forces()
+  fref = np.array([
+    [1.26757787, 2.19560632, 0],
+    [-0.82664239, -1.40412532, 0],
+    [0.8265182, 1.40421582, 0],
+    [-1.26745369, -2.19569683, 0]
+  ])
+  assert np.allclose(forces, fref)
+  viral = atoms.get_calculator().results['virial']
+  vref = np.array([
+    [-3.03654023, -4.788098, 0],
+    [-4.788098, -8.35799644, 0],
+    [0, 0, -0.18279328]
+  ])
+  assert np.allclose(viral, vref)
+  axes = atoms.get_cell()
+  box = np.diag(axes)
+  assert np.allclose(box, [5.4463, 6.2889, 5.755])
+  pos = atoms.get_positions()
+  pref = np.array([
+    [0, 0, 0],
+    [0.90771188, 1.57219996, 0],
+    [1.81541833, 3.14439992, 0],
+    [2.72313021, 4.71659989, 0]
+  ])
+  assert np.allclose(pos, pref)
+
 if __name__ == '__main__':
   test_name_sep_val()
   test_energy()
   test_total_forces()
   test_total_stress()
+  test_stay()
+  test_qe2ase()
+# end __main__
