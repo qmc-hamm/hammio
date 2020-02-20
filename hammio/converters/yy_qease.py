@@ -103,20 +103,24 @@ def total_forces(mm, ndim=3):
   # allocate memory
   natom = name_sep_val(mm, 'number of atoms', dtype=int)
   forces = np.zeros([natom, ndim])
-  # find forces text block
+  # find forces start
   begin_tag = 'Forces acting on atoms'
-  end_tag = 'The non-local contrib.  to forces'
   begin_idx = mm.find(begin_tag.encode())
-  end_idx = mm.find(end_tag.encode())
-  force_block = mm[begin_idx:end_idx].decode()
-  # parse forces text block
-  iatom = 0
-  for line in force_block.split('\n'):
-    if line.strip().startswith('atom'):
-      tokens = line.split()
-      if len(tokens) == 6+ndim:  # found an atom
-        forces[iatom, :] = list(map(float, tokens[-ndim:]))
-        iatom += 1
+  mm.seek(begin_idx)
+  for iskip in range(2):
+    mm.readline()
+  # parse forces
+  for iatom in range(natom):
+    line = mm.readline().decode()
+    if not line.strip().startswith('atom'):
+      msg = 'cannot parse "%s"' % line
+      raise RuntimeError(msg)
+    tokens = line.split()
+    if len(tokens) != 6+ndim:
+      msg = 'cannot parse "%s"\n' % line
+      msg += ' is ndim=%d correct?' % ndim
+      raise RuntimeError(msg)
+    forces[iatom, :] = list(map(float, tokens[-ndim:]))
   return forces
 
 @stay
